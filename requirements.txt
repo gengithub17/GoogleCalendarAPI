@@ -1,0 +1,6 @@
+Flask
+flask-login
+flask_apscheduler
+flask-sqlalchemy
+google-auth-oauthlib
+google-api-python-client

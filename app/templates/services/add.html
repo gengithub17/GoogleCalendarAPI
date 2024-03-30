@@ -1,0 +1,218 @@
+{% extends 'base.html'%}
+
+{% block head %}
+<title>イベント追加</title>
+{% endblock %}
+
+{% block body %}
+<form class="box m-3" id="form" action="/post" method="POST">
+	<label for="event_name">タイトル:</label><br>
+	<input type="text" id="event_name" name="summary" value="{{ default_event_name }}"><br><br>
+
+	<label for="select_color" id="color_block">Color</label>
+	<select id="select_color" name="colorId" onchange="changeColorBlock()">
+		<option value="" selected hidden></option>
+	</select><br>
+
+	<label for="location">場所:</label><br>
+	<input type="text" id="location" name="location" value="{{ default_event_location }}"><br><br>
+
+	<table>
+		<tr>
+			<td><label for="event_date">日付</label></td>
+			<td>
+				<label for="multiple">複数追加</label>
+				<input type="checkbox" id="multiple" name="multiple" onchange="multiTuggle()">
+			</td>
+		</tr>
+		<tr>
+			<td><input type="date" id="event_date" name="event_date" value="{{ default_event_date }}"></td>
+			<td><button type="button" id="dateadd" style="display: none" onclick="addDate()">日付を追加</button></td>
+		</tr>
+	</table>
+
+	<input type="hidden" name="date_list" id="date_list_form">
+	<table id="date_list" style="display: none">
+	</table>
+
+	<label for="date">終日</label>
+	<input type="checkbox" id="date" name="date" onchange="dateTuggle()"><br>
+
+
+	<table id="time_table" style="display: block">
+		<tr>
+			<td><label for="start_time">開始時刻</label></td>
+			<td><label for="end_time">終了時刻</label></td>
+		</tr>
+		<tr>
+			<td><input type="time" id="start_time" name="start_time" value="{{ default_start_time }}" style="display: block"></td>
+			<td><input type="time" id="end_time" name="end_time" value="{{ default_end_time }}" style="display: block"></td>
+		</tr>
+	</table>
+
+	<br>
+	<input type="submit" value="予定を追加する">
+</form>
+
+<script>
+	var color_dict = JSON.parse('{{ colors_json|safe }}');
+	function selectStyleCutomize(){
+		var select = document.getElementById("select_color");
+		var style = document.createElement("style");
+		for(id in color_dict){
+			var option = document.createElement("option");
+			style.innerHTML += `.id${id} {background-color: ${color_dict[id]} !important;}`;
+			option.style.backgroundColor = color_dict[id];
+			option.value = id;
+			option.innerHTML = id
+			option.classList.add(`id${id}`);
+			select.add(option);
+		}
+		document.body.appendChild(style);
+	}
+	selectStyleCutomize();
+	function changeColorBlock(){
+		var select = document.getElementById("select_color");
+		var block = document.getElementById("color_block");
+		block.style.backgroundColor = color_dict[select.value];
+	}
+	function multiTuggle(){
+		var tuggle = document.getElementById("multiple");
+		var addButton = document.getElementById("dateadd");
+		var dateTable = document.getElementById("date_list");
+
+		if(tuggle.checked){
+			addButton.style.display = "block";
+			dateTable.style.display = "block";
+		}else{
+			addButton.style.display = "none";
+			dateTable.style.display = "none";
+		}
+	}
+	function addDate(){
+		var table = document.getElementById("date_list");
+
+		var eventDateInput = document.getElementById("event_date");
+		var eventDate = eventDateInput.value;
+		// 日付形式をチェック
+		function isValidDate(dateString) {
+			var regex = /^\d{4}-\d{2}-\d{2}$/;
+			return regex.test(dateString);
+		};
+		if(!isValidDate(eventDate)){
+			alert("無効な日付です。");
+			return;
+		}
+
+		var dateObj = new Date(eventDate);
+		// 過去であればアラート
+		if(dateObj < new Date()){
+			var confirmation = confirm("過去の日付です。追加しますか?");
+			if(!confirmation){
+				return;
+			}
+		}
+		var formattedDate = dateObj.getFullYear() + "-" + 
+			(dateObj.getMonth() + 1).toString().padStart(2, '0') + "-" + 
+			dateObj.getDate().toString().padStart(2, '0');
+		rows = table.getElementsByTagName("tr");
+		for(var i=0; i<rows.length; i++){
+			if(rows[i].cells[0].textContent == formattedDate){
+				alert("この日付はすでに追加されています。");
+				return;
+			}
+		}
+		var newRow = table.insertRow();
+		var dateCell = newRow.insertCell(0);
+		var rmCell = newRow.insertCell(1);
+		dateCell.innerHTML = formattedDate;
+
+		var deleteButton = document.createElement("button");
+		deleteButton.textContent = "削除";
+		deleteButton.onclick = function(){
+			var rowIndex = newRow.rowIndex;
+			table.deleteRow(rowIndex);
+		};
+		rmCell.appendChild(deleteButton);
+
+		sortTableByDate();
+	}
+	function sortTableByDate() {
+		var table, rows, switching, i, x, y, shouldSwitch;
+		table = document.getElementById("date_list");
+		switching = true;
+		while (switching) {
+			switching = false;
+			rows = table.rows;
+			for (i = 1; i < (rows.length - 1); i++) {
+				shouldSwitch = false;
+				x = rows[i].getElementsByTagName("td")[0].textContent;
+				y = rows[i + 1].getElementsByTagName("td")[0].textContent;
+				if (new Date(x) > new Date(y)) {
+					shouldSwitch = true;
+					break;
+				}
+			}
+			if (shouldSwitch) {
+				rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+				switching = true;
+			}
+		}
+	}
+
+	// formのsubmit前チェック
+	document.getElementById('form').addEventListener('submit', function(event){
+		var emptyList = [];
+		var summary = document.getElementById("event_name");
+		var colorId = document.getElementById("select_color");
+		var location = document.getElementById("location");
+		if(summary.value.trim() === ""){
+			emptyList.push("タイトル");
+		}
+		if(colorId.value.trim() === ""){
+			emptyList.push("Color");
+		}
+		if(location.value.trim() === ""){
+			emptyList.push("場所");
+		}
+		var multiple = document.getElementById("multiple");
+		if(!multiple.checked){
+			var date = document.getElementById("event_date");
+			if(date.value.trim() === ""){
+				emptyList.push("日付");
+			}
+		}
+		if(emptyList.length > 0){
+			var message = "以下の項目が未記入です。\n";
+			emptyList.forEach(function(item){
+				message += item+"\n";
+			});
+			alert(message);
+			event.preventDefault();
+			return;
+		}
+
+		var dateList = [];
+		var table = document.getElementById('date_list');
+		var rows = table.getElementsByTagName('tr');
+		for (var i=0; i<rows.length; i++){
+			var cell = rows[i].getElementsByTagName('td')[0];
+			dateList.push(cell.innerHTML);
+		}
+		document.getElementById("date_list_form").value = dateList.join(",");
+		event.preventDefault();
+		this.submit();
+	})
+
+	function dateTuggle(){
+		var checkbox = document.getElementById("date");
+		var time_table = document.getElementById("time_table");
+		
+		if(checkbox.checked){
+			time_table.style.display = "none";
+		} else {
+			time_table.style.display = "block";
+		}
+	}
+</script>
+{% endblock %}

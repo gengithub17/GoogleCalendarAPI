@@ -1,0 +1,16 @@
+{% extends 'base.html'%}
+
+{% block head %}
+<title>ログイン</title>
+{% endblock %}
+
+{% block body %}
+<form class="box m-3" method="POST" action="/login">
+	<label class="text">{{ message }}</label>
+	<label class="label" for="account">アカウント(メールアドレス)</label>
+	<input type="text" id="account" name="account"></input>
+	<label class="label" for="password">パスワード</label>
+	<input type="password" name="password"></input>
+	<button type="submit" class="button is-info mt-3">ログイン</button>
+</form>
+{% endblock %}
